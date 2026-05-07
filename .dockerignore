@@ -1,0 +1,7 @@
+_archive/
+shared-data/
+*.md
+.git/
+__pycache__/
+*.pyc
+.env

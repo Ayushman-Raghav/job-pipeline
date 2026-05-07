@@ -1,0 +1,48 @@
+services:
+  jobspy:
+    build: ./jobspy-service
+    container_name: jobspy-service
+    restart: unless-stopped
+    expose:
+      - "8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - shared_data:/data/shared
+    networks:
+      - pipeline
+
+  n8n-init:
+    image: alpine:3.20
+    container_name: n8n-init
+    command: sh -c "mkdir -p /data/shared && chown -R 1000:1000 /data/shared && chmod -R 755 /data/shared"
+    volumes:
+      - shared_data:/data/shared
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=Europe/Dublin
+      - TZ=Europe/Dublin
+      - N8N_SECURE_COOKIE=false
+      - JOBSPY_URL=http://jobspy:8000
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - shared_data:/data/shared
+    depends_on:
+      - jobspy
+      - n8n-init
+    networks:
+      - pipeline
+
+volumes:
+  n8n_data:
+  shared_data:
+
+networks:
+  pipeline:
+    driver: bridge
