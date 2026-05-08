@@ -116,7 +116,7 @@ Configurable via `app.py`. Default groupings:
 
 - [x] **Phase 1** — Containerised scraper, REST API, n8n orchestration, persistent CSV outputs
 - [x] **Phase 2** — Google Sheets integration via n8n (OAuth2)
-- [ ] **Phase 3** — Multi-search loops (all role families × multiple geos in one run)
+- [x] **Phase 3** — Multi-search loops (all role families × multiple geos in one run, deduped + idempotent upsert)
 - [ ] **Phase 4** — Claude-powered scoring against a target CV
 
 ## Project structure
