@@ -9,8 +9,13 @@ services:
       - "8000:8000"
     volumes:
       - shared_data:/data/shared
+    environment:
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3.2:3b
     networks:
       - pipeline
+    depends_on:
+      - ollama
 
   n8n-init:
     image: alpine:3.20
@@ -39,9 +44,24 @@ services:
     networks:
       - pipeline
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    environment:
+      - OLLAMA_NUM_PARALLEL=3
+      - OLLAMA_KEEP_ALIVE=30m
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - pipeline
+
 volumes:
   n8n_data:
   shared_data:
+  ollama_data:
 
 networks:
   pipeline:

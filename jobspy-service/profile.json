@@ -1,0 +1,60 @@
+{
+  "candidate": {
+    "name": "Ayushman Singh",
+    "current_location": "Dublin, Ireland",
+    "willing_to_relocate": ["Dublin", "London", "Remote-EU"],
+    "right_to_work": "Ireland (full)"
+  },
+  "experience": {
+    "total_years": 6,
+    "current_seniority": "Senior Business / Data Analyst",
+    "current_employer": "WNS Global Services",
+    "previous_employer": "Wipro Technologies",
+    "domains": ["financial services", "BPO operations", "supplier management"]
+  },
+  "education": {
+    "highest": "MSc Business Analytics",
+    "university": "Dublin Business School",
+    "year": 2023
+  },
+  "certifications": [
+    "Salesforce Certified Administrator",
+    "Certified ScrumMaster (CSM)",
+    "Alteryx Foundational Microcredential"
+  ],
+  "core_skills": {
+    "data_and_reporting": ["SQL (window functions, CTEs)", "Power BI (DAX, Power Query)", "Tableau", "Looker / LookML", "Excel (VBA, Power Query)"],
+    "platforms": ["Salesforce (Sales Cloud, Service Cloud)", "Microsoft Dynamics 365", "HubSpot"],
+    "automation_and_ai": ["Python (pandas, scipy, statsmodels)", "n8n", "Dify", "Power Automate", "MarkItDown", "Docling"],
+    "process_and_ba": ["BPMN", "Agile / Scrum", "Jira", "Confluence", "Azure DevOps", "BPMN process mapping"]
+  },
+  "target_roles": {
+    "preferred": ["Business Analyst", "Senior Business Analyst", "Data Analyst", "Sales Operations Analyst", "CRM Analyst", "Salesforce Administrator", "Business Systems Analyst"],
+    "acceptable": ["Reporting Analyst", "BI Analyst", "Pricing Analyst", "Systems Analyst"],
+    "avoid": ["Software Engineer", "Data Scientist (ML research)", "Frontend / Backend Developer", "Marketing roles unless analytics-led"]
+  },
+  "preferences": {
+    "salary_min_eur": 55000,
+    "salary_target_eur": 70000,
+    "company_size": "any",
+    "industries_preferred": ["financial services", "fintech", "consulting", "professional services", "tech with strong analytics function"],
+    "industries_avoid": ["pharma", "manufacturing only", "non-analytics sales roles"],
+    "remote_ok": true,
+    "hybrid_ok": true,
+    "fully_onsite_ok": true
+  },
+  "strengths_to_highlight": [
+    "5+ years cross-domain BA + data analyst experience",
+    "Hands-on Salesforce + Dynamics + HubSpot CRM platform engineering",
+    "Built 30+ Power BI dashboards replacing manual Excel reporting",
+    "Architected role-based security model (GDPR + PCI compliant)",
+    "API + ETL integrations across 5+ enterprise systems",
+    "Recent freelance AI / automation projects (n8n + Dify + Salesforce REST API)"
+  ],
+  "things_that_dont_fit": [
+    "Pure software engineering / coding-heavy roles",
+    "ML research / data science research roles",
+    "Junior / graduate roles (looking for mid-senior)",
+    "Roles requiring 10+ years experience"
+  ]
+}

@@ -1,0 +1,681 @@
+{
+  "name": "Job Pipeline - Phase 1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        -976
+      ],
+      "id": "c9f3e062-4f5c-439f-95a7-ed2f5b69d1ed",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://jobspy:8000/scrape",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -224,
+        -976
+      ],
+      "id": "609a3975-30ec-49bc-bd1d-41b815c2efe0",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate gives us a single item with `responses[]` (8 entries from HTTP loop).\n// Flatten all jobs, dedupe on job_url, emit one item per unique job in\n// the column shape Google Sheets expects (now 14 cols including description).\n\nconst responses = $input.first().json.responses || [];\n\nconst allJobs = [];\nfor (const resp of responses) {\n  const jobs = resp.jobs || [];\n  for (const job of jobs) {\n    allJobs.push({\n      ...job,\n      scraped_at:   resp.scraped_at,\n      role_family:  job.role_family  || resp.role_family,\n      search_term:  job.search_term  || resp.search_term,\n      geo_searched: job.geo_searched || resp.location,\n    });\n  }\n}\n\n// Dedupe on job_url — the same job can appear in multiple role/geo searches.\nconst seen = new Set();\nconst unique = [];\nfor (const job of allJobs) {\n  const key = job.job_url;\n  if (!key || seen.has(key)) continue;\n  seen.add(key);\n  unique.push(job);\n}\n\n// Truncate description to 1500 chars to keep sheets readable + LLM token budget sane.\nfunction trimDescription(d) {\n  if (!d) return '';\n  const cleaned = String(d).replace(/\\s+/g, ' ').trim();\n  return cleaned.length > 1500 ? cleaned.slice(0, 1500) + '…' : cleaned;\n}\n\n// Emit one item per unique job in the shape Google Sheets expects.\nreturn unique.map(job => ({\n  json: {\n    scraped_at:  job.scraped_at,\n    role_family: job.role_family || '',\n    site:        job.site || '',\n    title:       job.title || '',\n    company:     job.company || '',\n    location:    job.location || '',\n    date_posted: job.date_posted || '',\n    is_remote:   job.is_remote === true ? 'TRUE' : 'FALSE',\n    job_url:     job.job_url || '',\n    min_amount:  job.min_amount || '',\n    max_amount:  job.max_amount || '',\n    currency:    job.currency || '',\n    search_term: job.search_term || '',\n    description: trimDescription(job.description),\n  },\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -976
+      ],
+      "id": "1c08f75a-6bc7-4f2a-a4ee-d8c389837e8d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Emit one item per (role_family × geo) combination.\n// n8n will then loop the HTTP Request node once per item.\n\nconst ROLE_FAMILIES = {\n  BA:             \"Business Analyst\",\n  Data:           \"Data Analyst\",\n  CRM_Salesforce: \"Salesforce Administrator\",\n  Systems:        \"Systems Analyst\",\n};\n\nconst GEOS = [\n  { location: \"Dublin, Ireland\",        country_indeed: \"ireland\" },\n  { location: \"London, United Kingdom\", country_indeed: \"uk\" },\n];\n\nconst items = [];\nfor (const [family, term] of Object.entries(ROLE_FAMILIES)) {\n  for (const geo of GEOS) {\n    items.push({\n      json: {\n        role_family:    family,\n        search_term:    term,\n        location:       geo.location,\n        country_indeed: geo.country_indeed,\n        sites:          [\"indeed\", \"linkedin\"],\n        results_wanted: 15,\n        hours_old:      168,\n        save_csv:       true,\n      },\n    });\n  }\n}\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -976
+      ],
+      "id": "716a4abe-a556-4a9d-bca9-5026ae59e227",
+      "name": "Build search configs"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "responses",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        -976
+      ],
+      "id": "34496538-61fa-44b3-aa2a-e1d9c8e5c1d9",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Z3qbKjYuKA1EFids9QYppzjuaiMf9quxN8hw_chZhfM/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Z3qbKjYuKA1EFids9QYppzjuaiMf9quxN8hw_chZhfM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "job_url"
+          ],
+          "schema": [
+            {
+              "id": "scraped_at",
+              "displayName": "scraped_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "role_family",
+              "displayName": "role_family",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "site",
+              "displayName": "site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date_posted",
+              "displayName": "date_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_remote",
+              "displayName": "is_remote",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "min_amount",
+              "displayName": "min_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "max_amount",
+              "displayName": "max_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "search_term",
+              "displayName": "search_term",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fit_score",
+              "displayName": "fit_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fit_reason",
+              "displayName": "fit_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        -976
+      ],
+      "id": "de02ed86-cc4f-4e8d-8227-020469342c4d",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FZWNqBscGVUzmLRY",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Z3qbKjYuKA1EFids9QYppzjuaiMf9quxN8hw_chZhfM/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Z3qbKjYuKA1EFids9QYppzjuaiMf9quxN8hw_chZhfM/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "fit_score"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -688,
+        -768
+      ],
+      "id": "f7bcda96-e3a4-443a-b83f-d9878e8149fe",
+      "name": "Read unscored rows",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FZWNqBscGVUzmLRY",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -768
+      ],
+      "id": "484c515f-7747-4471-b5eb-a328147fce79",
+      "name": "Bundle for batch scoring"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://jobspy:8000/score-batch",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ jobs: $json.jobs.map(j => ({\n  title: j.title,\n  company: j.company,\n  location: j.location,\n  description: j.description,\n  job_url: j.job_url\n})) }) }}",
+        "options": {
+          "timeout": 5400000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -272,
+        -768
+      ],
+      "id": "a9947824-8ed2-415f-98dd-653176f88dac",
+      "name": "Score batch (Ollama)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// /score-batch returned a single response with results[] array.\n// Fan it out so each job becomes its own item for the next Sheets update step.\n\nconst response = $input.first().json;\nconst results = response.results || [];\n\nconsole.log(`Score batch finished: ${response.success_count} ok, ${response.error_count} errors, ${response.total_seconds}s total`);\n\nreturn results.map(r => ({\n  json: {\n    job_url:    r.job_url,\n    fit_score:  r.score,\n    fit_reason: r.reason,\n  },\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -768
+      ],
+      "id": "98a095b2-f5db-4755-b37d-761ec3b44be0",
+      "name": "Fan out scores"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Z3qbKjYuKA1EFids9QYppzjuaiMf9quxN8hw_chZhfM/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Z3qbKjYuKA1EFids9QYppzjuaiMf9quxN8hw_chZhfM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "job_url"
+          ],
+          "schema": [
+            {
+              "id": "scraped_at",
+              "displayName": "scraped_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "role_family",
+              "displayName": "role_family",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "site",
+              "displayName": "site",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "company",
+              "displayName": "company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "location",
+              "displayName": "location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date_posted",
+              "displayName": "date_posted",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_remote",
+              "displayName": "is_remote",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "job_url",
+              "displayName": "job_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "min_amount",
+              "displayName": "min_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "max_amount",
+              "displayName": "max_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "search_term",
+              "displayName": "search_term",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fit_score",
+              "displayName": "fit_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fit_reason",
+              "displayName": "fit_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        144,
+        -768
+      ],
+      "id": "cba15727-b1cf-4c08-8682-e110071dd906",
+      "name": "Write scores to sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FZWNqBscGVUzmLRY",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Build search configs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build search configs": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Read unscored rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read unscored rows": {
+      "main": [
+        [
+          {
+            "node": "Bundle for batch scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bundle for batch scoring": {
+      "main": [
+        [
+          {
+            "node": "Score batch (Ollama)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score batch (Ollama)": {
+      "main": [
+        [
+          {
+            "node": "Fan out scores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fan out scores": {
+      "main": [
+        [
+          {
+            "node": "Write scores to sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1c4fd4fe-9521-4782-b3e7-26efe6f0492b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "50bf7fd4ccc697d79d397ff46c45299ea12f99b2174e2c40a3f6392b1e8496c9"
+  },
+  "id": "f2xuFZxItrETLZlo",
+  "tags": []
+}

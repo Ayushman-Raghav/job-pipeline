@@ -31,3 +31,5 @@ Thumbs.db
 *.swp
 *.swo
 *~
+# Allow the env example template
+!.env.example
