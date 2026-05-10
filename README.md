@@ -4,6 +4,8 @@ A containerised, end-to-end job-search automation pipeline. Scrapes job boards, 
 
 Built as a portfolio project for a Dublin-based BA / Data Analyst job search across Ireland and the UK.
 
+![Architecture](assets/architecture.png)
+
 ---
 
 ## Performance
@@ -21,39 +23,11 @@ Real numbers from a complete production run:
 
 ---
 
-## Architecture
+## How it's wired
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│  Docker Compose Stack                                                    │
-│                                                                          │
-│  ┌──────────────────┐   ┌─────────────────┐   ┌────────────────────┐   │
-│  │   jobspy-svc     │   │      n8n        │   │      ollama        │   │
-│  │   (FastAPI)      │   │   (workflow     │   │   (local LLM)      │   │
-│  │                  │   │   orchestrator) │   │                    │   │
-│  │   /scrape        │   │                 │   │   llama3.2:3b      │   │
-│  │   /score         │   │   Manual        │   │   parallel = 3     │   │
-│  │   /score-batch   │   │   trigger →     │   │   keep_alive = 30m │   │
-│  │   /score-cache   │   │   end-to-end    │   │                    │   │
-│  │                  │   │   workflow      │   │                    │   │
-│  │   4 workers      │   │                 │   │                    │   │
-│  └────────┬─────────┘   └────────┬────────┘   └──────────┬─────────┘   │
-│           │                      │                       │             │
-│           └──── shared volume ───┘                       │             │
-│                                  │                       │             │
-└──────────────────────────────────┼───────────────────────┼─────────────┘
-                                   ↓                       ↑
-                          ┌────────────────┐      /api/generate
-                          │ Google Sheets  │
-                          │ (live feed)    │
-                          └────────────────┘
-                                   ↑
-                          ┌────────────────┐
-                          │    GitHub      │
-                          │ (workflows +   │
-                          │  app code)     │
-                          └────────────────┘
-```
+The n8n workflow stitches the whole pipeline together. One trigger fires the entire flow:
+
+![n8n Workflow](assets/workflow-canvas.png)
 
 Three containers, one shared volume for CSV persistence, OAuth2 to Google Sheets, local-only LLM inference. n8n orchestrates; jobspy scrapes and scores; Ollama runs the model.
 
@@ -148,6 +122,10 @@ The idempotent upsert pattern means the workflow can run any number of times per
 
 After the first full pass: **336 cached scores in 86 KB of JSON.** A re-run of the same data completes in seconds, not minutes.
 
+The batch scoring service logs progress in real time:
+
+![Batch scoring logs](assets/batch-scoring-logs.png)
+
 ### The architectural pivot worth describing
 
 The first attempt put the scoring loop inside n8n: read 312 unscored rows, call `/score` once per row in a Loop Over Items node. Every iteration of this design failed at scale.
@@ -180,6 +158,10 @@ Wait for all containers to report `Up`, then verify:
 (Invoke-WebRequest http://localhost:8000/health).Content
 docker exec ollama ollama list
 ```
+
+The full container stack at idle:
+
+![Containers running](assets/containers-running.png)
 
 Then open n8n at http://localhost:5678, import `workflows/job-pipeline-phase-4.json`, configure your Google Sheets OAuth2 credential, and click **Execute workflow**.
 
@@ -287,6 +269,7 @@ job-pipeline/
 │   ├── job-pipeline-phase-3.json   ← Multi-search + dedupe + upsert
 │   └── job-pipeline-phase-4.json   ← Current — adds LLM scoring branch
 ├── shared-data/                    ← Gitignored; holds CSVs and score cache
+├── assets/                         ← README screenshots
 ├── README.md
 ├── .env                            ← Gitignored; copied from .env.example
 ├── .env.example                    ← Template for local config
