@@ -1,0 +1,77 @@
+{
+  "candidate": {
+    "name": "Your Full Name",
+    "current_location": "City, Country (e.g. Dublin, Ireland)",
+    "willing_to_relocate": ["List of cities or regions, e.g. Dublin, London, Remote-EU"],
+    "right_to_work": "Your work authorization (e.g. Ireland (full), UK (graduate visa))"
+  },
+  "experience": {
+    "total_years": 5,
+    "current_seniority": "Your current job title (e.g. Senior Data Analyst)",
+    "current_employer": "Your current employer name",
+    "previous_employer": "Your most recent previous employer",
+    "domains": ["industries you've worked in", "e.g. fintech", "e.g. consulting"]
+  },
+  "education": {
+    "highest": "Highest qualification (e.g. MSc Business Analytics)",
+    "university": "Institution name",
+    "year": 2023
+  },
+  "certifications": [
+    "List your certifications",
+    "e.g. Salesforce Certified Administrator",
+    "e.g. AWS Cloud Practitioner"
+  ],
+  "core_skills": {
+    "data_and_reporting": ["List your data tools, e.g. SQL", "Power BI", "Tableau"],
+    "platforms": ["List CRM/ERP platforms you know", "e.g. Salesforce", "e.g. Microsoft Dynamics"],
+    "automation_and_ai": ["List automation and AI tools", "e.g. Python", "e.g. n8n"],
+    "process_and_ba": ["List BA frameworks and tools", "e.g. BPMN", "e.g. Agile / Scrum", "e.g. Jira"]
+  },
+  "target_roles": {
+    "preferred": [
+      "Business Analyst",
+      "Senior Business Analyst",
+      "Data Analyst",
+      "Sales Operations Analyst",
+      "CRM Analyst",
+      "Salesforce Administrator",
+      "Business Systems Analyst"
+    ],
+    "acceptable": [
+      "Reporting Analyst",
+      "BI Analyst",
+      "Pricing Analyst",
+      "Systems Analyst"
+    ],
+    "avoid": [
+      "Software Engineer",
+      "Data Scientist (ML research)",
+      "Frontend / Backend Developer",
+      "Marketing roles unless analytics-led"
+    ]
+  },
+  "preferences": {
+    "salary_min_eur": 50000,
+    "salary_target_eur": 65000,
+    "company_size": "any",
+    "industries_preferred": ["financial services", "fintech", "consulting", "tech with strong analytics function"],
+    "industries_avoid": ["pharma", "manufacturing only"],
+    "remote_ok": true,
+    "hybrid_ok": true,
+    "fully_onsite_ok": true
+  },
+  "strengths_to_highlight": [
+    "5+ years of relevant experience (replace with your years)",
+    "Specific hands-on skill you can prove (replace with your own)",
+    "Concrete achievement with a metric (replace with your own)",
+    "Cross-functional or domain breadth (replace with your own)",
+    "Recent project or certification highlight (replace with your own)"
+  ],
+  "things_that_dont_fit": [
+    "Pure software engineering / coding-heavy roles",
+    "ML research / data science research roles",
+    "Junior / graduate roles (if you're looking for mid-senior)",
+    "Roles requiring 10+ years experience"
+  ]
+}

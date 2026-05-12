@@ -2,6 +2,8 @@
 
 A containerised, end-to-end job-search automation pipeline. Scrapes job boards, deduplicates listings, persists them to Google Sheets, and scores each role against a structured candidate profile using a local LLM. Runs entirely on a developer laptop — no API keys, no cloud dependencies, no per-token cost.
 
+> 💡 **New here?** If you want to run this on your own laptop, follow the step-by-step guide in [`docs/SETUP.md`](docs/SETUP.md). Expect about 60–90 minutes including Google OAuth setup.
+
 Built as a portfolio project for a Dublin-based BA / Data Analyst job search across Ireland and the UK.
 
 ![Architecture](assets/architecture.png)
